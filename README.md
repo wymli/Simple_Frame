@@ -33,11 +33,9 @@
       dataset = process_data(df)
       dataloader = DataLoader(dataset[indices] , batch_size)
       ```
-  - 数据集的访问方式
-    - map-style datasets,
-    - iterable-style datasets.
+  - 数据集的访问
   - ``` python
-    # 我这边GNN的dataset是map-style的,字典访问
+    # 我这边GNN的dataset形式
     for data in dataloader:
       x, edge_index, batch = data.x, data.edge_index, data.batch
       label = data.y
