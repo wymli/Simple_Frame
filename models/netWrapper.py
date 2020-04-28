@@ -1,6 +1,6 @@
 import numpy as np
 import torch
-from metrics import *
+from models.metrics import *
 import time
 from datetime import timedelta
 import torch
@@ -23,8 +23,8 @@ class NetWrapper:
         self.classification = classification  # 分类任务
         self.metric_type = metric_type
 
-    def train_test_one_fold(self, train_loader, test_loader=None, max_epochs=100, optimizer=torch.optim.Adam, scheduler=None, clipping=None,
-                          early_stopping=None, logger=None, log_every=10, is_multi_label=False):
+    def train_test_one_fold(self, train_loader, test_loader, max_epochs=100, optimizer=torch.optim.Adam, scheduler=None, clipping=None,
+                            early_stopping=None, logger=None, log_every=10, is_multi_label=False):
 
         for i in range(max_epochs):
             begin = time.time()
@@ -34,17 +34,14 @@ class NetWrapper:
             duration = end - begin
             if i % log_every == 0:
                 msg = f'[TRAIN] Epoch: {i+1}, metric: {self.metric_type}, TR loss: {loss} TR metric: {metric}'
-                logger.log(msg)
-                logger.log(
+                print(msg)
+                print(
                     f"elapsed time: {duration}s , Time estimation in a fold:{duration*max_epochs/3600}h")
-                if i == 0:
-                    logger.flush()
             # r 可能要加early_stop
 
         metric, loss = self.test(test_loader)
         msg = f'[TEST] metric: {self.metric_type}, TS loss: {loss} TS metric: {metric}'
-        logger.log(msg).flush()
-
+        print(msg)
         return metric, loss
 
     def train_one_epoch(self, train_loader, optimizer, clipping=None, is_multi_label=False):  # y 每个epoch的训练

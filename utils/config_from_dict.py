@@ -6,7 +6,7 @@ from models.graph_classifiers.DGCNN import DGCNN
 from models.graph_classifiers.DeepMultisets import DeepMultisets
 from models.graph_classifiers.MolecularFingerprint import MolecularFingerprint
 from models.schedulers.ECCScheduler import ECCLR
-from models.utils.EarlyStopper import Patience, GLStopper
+# from models.utils.EarlyStopper import Patience, GLStopper
 from models.graph_classifiers.GIN import GIN
 from models.graph_classifiers.DiffPool import DiffPool
 from models.graph_classifiers.ECC import ECC

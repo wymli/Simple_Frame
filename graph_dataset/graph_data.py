@@ -7,6 +7,10 @@ import pandas as pd
 import rdkit
 from torch_geometric.datasets import TUDataset
 from torch_geometric.data import DataLoader
+from graph_dataset.node_edge_feature import *
+
+from rdkit import Chem
+import os
 # print(rdkit.__version__)
 
 # fp =  open("log.txt" , "a")
@@ -17,11 +21,6 @@ from torch_geometric.data import DataLoader
 # print(df["p_np"].describe())
 # print(df["p_np"].value_counts() )
 # fp.close()
-from node_edge_feature import *
-
-from rdkit import Chem
-import os
-
 
 
 
@@ -90,7 +89,6 @@ import os
 #     return dataloader
 
 
-
 def smiles_to_graphData(smiles: str, g_label: int):
     mol = Chem.MolFromSmiles(smiles)
     num_nodes = len(mol.GetAtoms())
@@ -117,12 +115,16 @@ def smiles_to_graphData(smiles: str, g_label: int):
     return Data(x, edge_index, edge_attrs, y=g_label)
 
 
-def load_data_from_df(df):
+def load_data_from_df(df, train_idxs, test_idxs):
+    '''
+    return DataList
+    '''
     dataList = []
-    for _ , smiles, label in df.itertuples():
-        data = smiles_to_graphData(smiles , label)
-        dataList.append((data , label))
-    return dataList
+    for _, smiles, label in df.itertuples():
+        data = smiles_to_graphData(smiles, label)
+        dataList.append((data, label))
+    return dataList[train_idxs], dataList[test_idxs]
 
-def construct_dataloader(dataset , batch_size , shuffle):
-    return DataLoader(dataset , batch_size , shuffle)
+
+def construct_dataloader(dataset, batch_size, shuffle):
+    return DataLoader(dataset, batch_size, shuffle)
