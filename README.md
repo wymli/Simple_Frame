@@ -53,12 +53,24 @@
 
 
 ### running pipeline:
-#### python data_split.py --input_file = 'XXXX.csv' --random_split(store_true)/--scaffold_split(store_true) --k_fold = 5 --output_dir = './data_split/'
-
-
-#### python main.py --model_name = '' --task_type = classification/regression --multi_label(store_true) --dataset_path = '' --split_path = '' --k_fold = 5 --model_config
-
+- prepare data_split
+```bash
+python data_split.py --input_file = 'XXXX.csv' --random_split(store_true)/--scaffold_split(store_true) --k_fold = 5 --output_dir = './data_split/'
+```
+- run exp
+```bash
+python main.py --model_name = '' --task_type = classification/regression --multi_label(store_true) --dataset_path = '' --split_path = '' --k_fold = 5 --model_config
+```
 ### Needed to change:
+- [x] data_split
+- [ ] dataset返回形式
+  - [x] graph_data
+- [ ] dataloader
+  - [x] graph_data
+- [x] multi_label
+- [ ] visualization
+- [ ] 载入config
+
 #### add data_split.py
       scaffold, random_split
 
@@ -74,23 +86,59 @@
       每个模型构建 load_data_from_df & construct_loader(即get_loader_one_fold)函数
           load_data_from_df return feats, labels
           construct_loader return train_loader, test_loader
-
+- 实现(graph_data):
+```py
+# dataset
+for _, smiles, label in df.itertuples():
+        data = smiles_to_graphData(smiles, label)
+        dataList.append((data, label))
+#dataloader
+DataLoader(dataList[train_indices], batch_size, shuffle)
+```
 #### mulit-label:
-      应该是在main.py加个for循环
-        df = pd.read_csv(csv_path)
-        target_name_list = df.columns.tolist()
-        target_name_list.remove('smiles')
+- 应该是在main.py加个for循环
+```py
+df = pd.read_csv(csv_path)
+target_name_list = df.columns.tolist()
+target_name_list.remove('smiles')
 
-        multi_label_metrics = []
-        for target_name in target_name_list:
-           metrics = []
-            for i in range(k_fold):
-              train_loader,  test_loader = loader_provider.get_loader_one_fold(i)
-              metric, loss = net.train_test_one_fold
-              metrics.append(metric)
-            multi_label_metrics.append(np.array(metrics).mean())
-        metric_mean = np.array(multi_label_metrics).mean()
-        metric_std = np.array(multi_label_metrics).std()
+multi_label_metrics = []
+for target_name in target_name_list:
+    metrics = []
+    for i in range(k_fold):
+      train_loader,  test_loader = loader_provider.get_loader_one_fold(i)
+      metric, loss = net.train_test_one_fold
+      metrics.append(metric)
+    multi_label_metrics.append(np.array(metrics).mean())
+metric_mean = np.array(multi_label_metrics).mean()
+metric_std = np.array(multi_label_metrics).std()
+```
+- 实现如下:
+```py
+targets_len = 1
+if args["multi_label"]: #可以去掉,此时不需要multi_label这个参数
+    targets_len = get_targets_len(dataset_path)
 
+
+metric_mean = 0
+metric_std = 0
+multi_label_metrics = []
+for label_index in range(targets_len):
+    metrics = []
+    for i in range(k_fold):
+        train_loader,  test_loader = loader_provider.get_loader_one_fold(
+            i)
+        metric, loss = net.train_test_one_fold(
+            train_loader, test_loader, label_index=label_index)
+        metrics.append(metric)
+    multi_label_metrics.append(np.array(metrics).mean())
+    metric_mean = multi_label_metrics[0]
+    metric_std = np.array(metrics).std()
+
+if len(multi_label_metrics) != 1: #多标签
+    metric_mean = np.array(multi_label_metrics).mean()
+    metric_std = np.array(multi_label_metrics).std()
+```
 #### visualization
+  - pass
 
