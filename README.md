@@ -61,6 +61,10 @@ python data_split.py --input_file = 'XXXX.csv' --random_split(store_true)/--scaf
 ```bash
 python main.py --model_name = '' --task_type = classification/regression --multi_label(store_true) --dataset_path = '' --split_path = '' --k_fold = 5 --model_config
 ```
+- prepare data
+```py
+python prepare_feats.py --dataset_path "" --dataset_type ""
+```
 ### Needed to change:
 - [x] data_split
 - [ ] dataset返回形式

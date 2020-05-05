@@ -9,17 +9,16 @@ from networkx import normalized_laplacian_matrix
 
 
 class Graph2feats():
-    def __init__(self, dataset_path , use_node_attrs = False ,use_node_degree= False, max_reductions=10 ,precompute_kron_indices = True ):
+    def __init__(self, dataset_path , use_node_attrs = False ,use_node_degree= False,use_one=False, classification = True , max_reductions=10 ,precompute_kron_indices = True ):
         self.dataset_path = dataset_path
         self.folder_path = "\\".join(self.dataset_path.split("\\")[:-1])
         self.raw_dir = os.path.join(self.folder_path,"raw")
         self.processed_dir = os.path.join(self.folder_path,"processed")
         self.name = self.dataset_path.split("\\")[-1]
-        self.precompute_kron_indices = True
-        self.use_node_degree = False
-        self.use_node_attrs = True
-        self.use_one = False
-        self.classification = True
+        self.use_node_degree = use_node_degree
+        self.use_node_attrs = use_node_attrs
+        self.use_one = use_one
+        self.classification = classification
         self.KRON_REDUCTIONS = max_reductions  # will compute indices for 10 pooling layers --> approximately 1000 nodes
         self.precompute_kron_indices = precompute_kron_indices
 
@@ -77,7 +76,7 @@ class Graph2feats():
 
     def process(self):  # y 处理成.pt
         self.df2files()
-        
+
         graphs_data, num_node_labels, num_edge_labels = parse_tu_data(
             self.name , self.raw_dir)
         targets = graphs_data.pop("graph_labels")  # y targets是graph labels
@@ -208,13 +207,21 @@ class Graph2feats():
 
 def parse():
     parser = argparse.ArgumentParser()
-    parser.add_argument("dataset_type", type=str)
-    parser.add_argument("dataset_path", type=str)
+    parser.add_argument("--dataset_type", type=str,help="graph or MAT or ...")
+    parser.add_argument("--dataset_path", type=str)
     return parser.parse_args()
 
 
 def main():
+    print("hello")
     args = parse()
+    print("hello")
     if args.dataset_type == "graph":
+        print("hello")
         preparer = Graph2feats(args.dataset_path)
         preparer.process()
+
+
+if __name__ == "__main__":
+    print("hello")
+    main()
