@@ -127,9 +127,9 @@ for label_index in range(targets_len):
     metrics = []
     for i in range(k_fold):
         train_loader,  test_loader = loader_provider.get_loader_one_fold(
-            i)
+            i, label_index=label_index)
         metric, loss = net.train_test_one_fold(
-            train_loader, test_loader, label_index=label_index)
+            train_loader, test_loader)
         metrics.append(metric)
     multi_label_metrics.append(np.array(metrics).mean())
     metric_mean = multi_label_metrics[0]
