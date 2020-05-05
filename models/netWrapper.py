@@ -16,7 +16,6 @@ def format_time(avg_time):
 
 
 class NetWrapper:
-
     def __init__(self, model, loss_function, device='cpu', classification=True, metric_type="auc"):
         self.model = model
         self.loss_fun = loss_function
@@ -68,7 +67,6 @@ class NetWrapper:
             #         labels = labels[:,label_index]
             # else:
             #     pass
-            
             # labels = labels.dropna()
 
             feats = feats.to(self.device)
@@ -86,12 +84,10 @@ class NetWrapper:
             if self.classification:
                 loss, acc = self.loss_fun(labels, *output)
                 loss.backward()
-
                 try:
                     num_graphs = feats.num_graphs
                 except TypeError:
                     num_graphs = feats.adj.size(0)
-
                 loss_all += loss.item() * num_graphs
                 acc_all += acc.item() * num_graphs
             else:
@@ -104,7 +100,7 @@ class NetWrapper:
             optimizer.step()
 
         if self.classification:
-            metric = get_a_metric(y_labels, y_preds, self.metric_type)
+            metric = get_metric(y_labels, y_preds, self.metric_type)
             return metric, loss_all / len(train_loader.dataset)
         else:
             return None, loss_all / len(train_loader.dataset)

@@ -131,3 +131,63 @@ def load_data_from_df(df, train_idxs, test_idxs,label_index):
 
 def construct_dataloader(dataset, batch_size, shuffle):
     return DataLoader(dataset, batch_size, shuffle)
+
+
+
+# original dataloader from gnn-comparison
+from torch_geometric import data
+import torch
+class Batch(data.Batch):
+    @staticmethod
+    def from_data_list(data_list, follow_batch=[]):
+        laplacians = None
+        v_plus = None
+
+        if 'laplacians' in data_list[0]:
+            laplacians = [d.laplacians[:] for d in data_list]
+            v_plus = [d.v_plus[:] for d in data_list]
+
+        copy_data = []
+        for d in data_list:
+            copy_data.append(Data(x=d.x,
+                                  y=d.y,
+                                  edge_index=d.edge_index,
+                                  edge_attr=d.edge_attr,
+                                  v_outs=d.v_outs,
+                                  g_outs=d.g_outs,
+                                  e_outs=d.e_outs,
+                                  o_outs=d.o_outs)
+                             )
+
+        batch = data.Batch.from_data_list(copy_data, follow_batch=follow_batch)
+        batch['laplacians'] = laplacians
+        batch['v_plus'] = v_plus
+
+        return batch
+
+class DataLoader_(torch.utils.data.DataLoader):
+    r"""Data loader which merges data objects from a
+    :class:`torch_geometric.data.dataset` to a mini-batch.
+    Args:
+        dataset (Dataset): The dataset from which to load the data.
+        batch_size (int, optional): How many samples per batch to load.
+            (default: :obj:`1`)
+        shuffle (bool, optional): If set to :obj:`True`, the data will be
+            reshuffled at every epoch. (default: :obj:`False`)
+        follow_batch (list or tuple, optional): Creates assignment batch
+            vectors for each key in the list. (default: :obj:`[]`)
+    """
+
+    def __init__(self,
+                 dataset,
+                 batch_size=1,
+                 shuffle=False,
+                 follow_batch=[],
+                 **kwargs):
+        super(DataLoader_, self).__init__(
+            dataset,
+            batch_size,
+            shuffle,
+            collate_fn=lambda data_list: Batch.from_data_list(
+                data_list, follow_batch),
+            **kwargs)
