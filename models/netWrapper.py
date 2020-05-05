@@ -45,7 +45,7 @@ class NetWrapper:
         print(msg)
         return metric, loss
 
-    def train_one_epoch(self, train_loader, optimizer, clipping=None, label_index=0):  # y 每个epoch的训练
+    def train_one_epoch(self, train_loader, optimizer, clipping=None):  # y 每个epoch的训练
         model = self.model.to(self.device)
         model.train()  # 训练模式
 
@@ -56,20 +56,20 @@ class NetWrapper:
         y_preds = []
         y_labels = []
         for feats, labels in train_loader: #或者统一labels形式
-            # 兼容多标签模型
-            if isinstance(labels , list): #单标签
-                pass 
-            elif isinstance(labels , pd.Series):
-                pass
-            elif isinstance(labels , pd.DataFrame): #多标签
-                labels = labels.iloc[:,label_index]
-            elif isinstance(labels , np.array):
-                if len(labels.shape) == 1:
-                    pass
-                labels = labels[:,label_index]
-            else:
-                pass
-                
+            # # 兼容多标签模型   ->label_index 改到load_data_from_df里面
+            # if isinstance(labels , list): #单标签
+            #     pass 
+            # elif isinstance(labels , pd.Series):
+            #     pass
+            # elif isinstance(labels , pd.DataFrame): #多标签
+            #     labels = labels.iloc[:,label_index]
+            # elif isinstance(labels , np.array):  
+            #     if len(labels.shape) != 1:
+            #         labels = labels[:,label_index]
+            # else:
+            #     pass
+            
+            # labels = labels.dropna()
 
             feats = feats.to(self.device)
             optimizer.zero_grad()

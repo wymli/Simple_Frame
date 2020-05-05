@@ -17,7 +17,8 @@ def getDate():
 
 
 class dataLoader_provider:
-    def __init__(self, dataset_path, split_path, batch_size, shuffle=False):
+    def __init__(self, model_name , dataset_path, split_path, batch_size, shuffle=False):
+        self.model_name = model_name
         self.batch_size = batch_size
         self.split_path = split_path
         self.dataset_path = dataset_path
@@ -32,17 +33,16 @@ class dataLoader_provider:
             splits = json.load(fp)
         return splits
 
-    def get_loader_one_fold(self, idx: int):
-        indices = self.splits[idx]
-        testSet_indices = indices["test"]
-        # 这里的0是holdout,即内部不做cv,inner_kfold=None
-        trainSet_indices = indices["train"]
+    def get_loader_one_fold(self, split_idx: int,label_index=0):
+        indices = self.splits[split_idx]
+        testset_indices = indices["test"]
+        trainset_indices = indices["train"]
 
         df = pd.read_csv(self.dataset_path)
 
-        if "图模型":
+        if self.model_name in ["DGCNN" , "GIN" , "ECC" , "GraphSAGE" , "DiffPool"]:  #图模型
             train_dataset, test_dataset = graph_data.load_data_from_df(
-                df, trainSet_indices, testSet_indices)
+                df, trainset_indices, testset_indices,label_index)
             train_loader = graph_data.construct_dataloader(
                 train_dataset, self.batch_size, self.shuffle)
             test_loader = graph_data.construct_dataloader(
@@ -71,7 +71,7 @@ def kfold_train_test(model_name, dataset_path, split_path=None,  k_fold=5,  args
     loss_fn = getConfig("losses", args["loss"])()
 
     loader_provider = dataLoader_provider(
-        dataset_path, split_path, args["batch_size"])
+        model_name , dataset_path, split_path, args["batch_size"])
     net = netWrapper.NetWrapper(
         model, loss_fn, device=args["device"], classification=True, metric_type=args["metric_type"])
     
@@ -99,9 +99,9 @@ def kfold_train_test(model_name, dataset_path, split_path=None,  k_fold=5,  args
         metrics = []
         for i in range(k_fold):
             train_loader,  test_loader = loader_provider.get_loader_one_fold(
-                i)
+                i, label_index=label_index)
             metric, loss = net.train_test_one_fold(
-                train_loader, test_loader, label_index=label_index)
+                train_loader, test_loader)
             metrics.append(metric)
         multi_label_metrics.append(np.array(metrics).mean())
         metric_mean = multi_label_metrics[0]

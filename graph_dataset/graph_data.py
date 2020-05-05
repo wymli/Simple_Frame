@@ -115,13 +115,16 @@ def smiles_to_graphData(smiles: str, g_label: int):
     return Data(x, edge_index, edge_attrs, y=g_label)
 
 
-def load_data_from_df(df, train_idxs, test_idxs):
+def load_data_from_df(df, train_idxs, test_idxs,label_index):
     '''
     return DataList
     '''
     dataList = []
-    for _, smiles, label in df.itertuples():
-        data = smiles_to_graphData(smiles, label)
+    for _, smiles, labels in df.itertuples():
+        label = labels[label_index]
+        if label == pd.nan:
+            continue
+        data = smiles_to_graphData(smiles,label)
         dataList.append((data, label))
     return dataList[train_idxs], dataList[test_idxs]
 

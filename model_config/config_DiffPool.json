@@ -1,0 +1,65 @@
+{
+  "model": [
+    "DiffPool"
+  ],
+  "device": [
+    "cpu"
+  ],
+  "batch_size": [
+    8
+  ],
+  "learning_rate": [
+    0.001,
+    0.0001,
+    0.00001
+  ],
+  "classifier_epochs": [
+    3000
+  ],
+  "optimizer": [
+    "Adam"
+  ],
+  "scheduler": [
+    null
+  ],
+  "loss": [
+    "DiffPoolMulticlassClassificationLoss"
+  ],
+  "l2": [
+    0
+  ],
+  "gradient_clipping": [
+    2
+  ],
+  "early_stopper": [
+    {
+      "class": "Patience",
+      "args": {
+        "patience": 500,
+        "use_loss": false
+      }
+    },
+    {
+      "class": "Patience",
+      "args": {
+        "patience": 500,
+        "use_loss": true
+      }
+    }
+  ],
+  "shuffle": [
+    true
+  ],
+  "num_layers": [
+    2
+  ],
+  "gnn_dim_hidden": [
+    64
+  ],
+  "dim_embedding": [
+    128
+  ],
+  "dim_embedding_MLP": [
+    50
+  ]
+}
