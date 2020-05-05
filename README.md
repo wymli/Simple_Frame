@@ -63,18 +63,15 @@
       scaffold, random_split
 
 #### dataset: 统一返回形式：(features, labels)
-     for data in dataloader:
-      x, edge_index, batch = data.x, data.edge_index, data.batch
-      label = data.y
-->
+```
       for data in dataloader:
         feats, label = data
         x, edge_index, batch = feats.x, feats.edge_index, feats.batch
-
+```
 #### dataloader: 
       main.py # line 34
       class dataLoader_provider
-      每个模型构建 load_data_from_df & construct_loader(get_loader_one_fold)函数
+      每个模型构建 load_data_from_df & construct_loader(即get_loader_one_fold)函数
           load_data_from_df return feats, labels
           construct_loader return train_loader, test_loader
 
@@ -88,7 +85,7 @@
         for target_name in target_name_list:
            metrics = []
             for i in range(k_fold):
-              train_loader, _, test_loader = loader_provider.get_loader_one_fold(i)
+              train_loader,  test_loader = loader_provider.get_loader_one_fold(i)
               metric, loss = net.train_test_one_fold
               metrics.append(metric)
             multi_label_metrics.append(np.array(metrics).mean())

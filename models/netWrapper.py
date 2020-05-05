@@ -4,6 +4,7 @@ from models.metrics import *
 import time
 from datetime import timedelta
 import torch
+import pandas as pd
 
 
 def format_time(avg_time):
@@ -24,12 +25,12 @@ class NetWrapper:
         self.metric_type = metric_type
 
     def train_test_one_fold(self, train_loader, test_loader, max_epochs=100, optimizer=torch.optim.Adam, scheduler=None, clipping=None,
-                            early_stopping=None, logger=None, log_every=10, is_multi_label=False):
+                            early_stopping=None, logger=None, log_every=10, label_index=0):
 
         for i in range(max_epochs):
             begin = time.time()
             metric, loss = self.train_one_epoch(
-                train_loader, optimizer, clipping=None, is_multi_label=is_multi_label)
+                train_loader, optimizer, clipping=None, label_index=label_index)
             end = time.time()
             duration = end - begin
             if i % log_every == 0:
@@ -44,14 +45,9 @@ class NetWrapper:
         print(msg)
         return metric, loss
 
-    def train_one_epoch(self, train_loader, optimizer, clipping=None, is_multi_label=False):  # y 每个epoch的训练
+    def train_one_epoch(self, train_loader, optimizer, clipping=None, label_index=0):  # y 每个epoch的训练
         model = self.model.to(self.device)
-
         model.train()  # 训练模式
-
-        if is_multi_label:
-            # y 多标签模型
-            pass
 
         loss_all = 0
         acc_all = 0
@@ -59,43 +55,47 @@ class NetWrapper:
         # y_labels = np.array([])
         y_preds = []
         y_labels = []
-        for data in train_loader:
+        for feats, labels in train_loader: #或者统一labels形式
+            # 兼容多标签模型
+            if isinstance(labels , list): #单标签
+                pass 
+            elif isinstance(labels , pd.Series):
+                pass
+            elif isinstance(labels , pd.DataFrame): #多标签
+                labels = labels.iloc[:,label_index]
+            elif isinstance(labels , np.array):
+                if len(labels.shape) == 1:
+                    pass
+                labels = labels[:,label_index]
+            else:
+                pass
+                
 
-            data = data.to(self.device)
+            feats = feats.to(self.device)
             optimizer.zero_grad()
-
-            # r debug
-            # print("edge_index.shape: ",data.edge_index.shape)
-            # print("x.shape:",data.x.shape)
-            # print(data.y.shape)
-            # print(data.num_nodes)
-            # print(data.batch.shape)
-            # print(data.keys)
-            # print()
-
-            output = model(data)
+            output = model(feats)
 
             if not isinstance(output, tuple):
                 output = (output,)
-            # print(output.size())
+
             # y_labels = np.concatenate((y_labels, data.y.data.cpu().view(-1).numpy()), axis=0)
             # y_preds = np.concatenate((y_preds, output[0].data[:,1].cpu().view(-1).numpy()), axis=0)
-            y_labels += list(data.y.detach().numpy())
+            y_labels += list(labels.detach().numpy())
             y_preds += list(output[0].detach().numpy()[:, 1])
 
             if self.classification:
-                loss, acc = self.loss_fun(data.y, *output)
+                loss, acc = self.loss_fun(labels, *output)
                 loss.backward()
 
                 try:
-                    num_graphs = data.num_graphs
+                    num_graphs = feats.num_graphs
                 except TypeError:
-                    num_graphs = data.adj.size(0)
+                    num_graphs = feats.adj.size(0)
 
                 loss_all += loss.item() * num_graphs
                 acc_all += acc.item() * num_graphs
             else:
-                loss = self.loss_fun(data.y, *output)
+                loss = self.loss_fun(labels, *output)
                 loss.backward()
                 loss_all += loss.item()
 
