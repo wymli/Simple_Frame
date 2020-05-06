@@ -17,7 +17,7 @@ def getDate():
 
 
 class dataLoader_provider:
-    def __init__(self, model_name , dataset_path, split_path, batch_size, shuffle=False):
+    def __init__(self, model_name, dataset_path, split_path, batch_size, shuffle=False):
         self.model_name = model_name
         self.batch_size = batch_size
         self.split_path = split_path
@@ -33,20 +33,18 @@ class dataLoader_provider:
             splits = json.load(fp)
         return splits
 
-    def get_loader_one_fold(self, split_idx: int,label_index=0):
+    def get_loader_one_fold(self, split_idx: int, label_index=0):
         indices = self.splits[split_idx]
         testset_indices = indices["test"]
         trainset_indices = indices["train"]
 
-        df = pd.read_csv(self.dataset_path)
+        # df = pd.read_csv(self.dataset_path)
 
-        if self.model_name in ["DGCNN" , "GIN" , "ECC" , "GraphSAGE" , "DiffPool"]:  #图模型
-            train_dataset, test_dataset = graph_data.load_data_from_df(
-                df, trainset_indices, testset_indices,label_index)
-            train_loader = graph_data.construct_dataloader(
-                train_dataset, self.batch_size, self.shuffle)
-            test_loader = graph_data.construct_dataloader(
-                test_dataset, self.batch_size, self.shuffle)
+        if self.model_name in ["DGCNN", "GIN", "ECC", "GraphSAGE", "DiffPool"]:  # 图模型
+            train_dataset, test_dataset = graph_data.load_data_from_pt(
+                self.dataset_path, trainset_indices, testset_indices, label_index)
+            train_loader, test_loader = graph_data.construct_dataloader(
+                train_dataset, test_dataset, self.batch_size, self.shuffle)
 
         # train_loader = DataLoader(
         #     df[trainSet_indices], self.batch_size, shuffle=True)
@@ -62,19 +60,21 @@ def get_targets_len(dataset_path):
 
 
 def kfold_train_test(model_name, dataset_path, split_path=None,  k_fold=5,  args=None):
-    # print(args["model_name"])
-    # raise
-    model = getConfig("models", model_name)(
-        args["dim_features"], args["dim_target"], args)
+    model_class = getConfig("models", model_name)
+    if model_name in ["DGCNN", "GIN", "ECC", "GraphSAGE", "DiffPool"]:
+        # 实例化model
+        # 这里args还要再fix一下,在模型内部需要访问args.dataset.max_num_nodes
+        model = model_class(args["dim_features"], args["dim_target"], args)
+
     optimizer = getConfig("optimizers", args["optimizer"])(model.parameters(),
                                                            lr=args['learning_rate'], weight_decay=args['l2'])
     loss_fn = getConfig("losses", args["loss"])()
 
     loader_provider = dataLoader_provider(
-        model_name , dataset_path, split_path, args["batch_size"])
+        model_name, dataset_path, split_path, args["batch_size"])
     net = netWrapper.NetWrapper(
         model, loss_fn, device=args["device"], classification=True, metric_type=args["metric_type"])
-    
+
     # metrics = []
     # losses = []
     # for i in range(k_fold):
@@ -88,9 +88,8 @@ def kfold_train_test(model_name, dataset_path, split_path=None,  k_fold=5,  args
 
     # multi_label
     targets_len = 1
-    if args["multi_label"]: #可以去掉,此时不需要multi_label这个参数
+    if args["multi_label"]:  # 可以去掉,此时不需要multi_label这个参数
         targets_len = get_targets_len(dataset_path)
-    
 
     metric_mean = 0
     metric_std = 0
@@ -106,11 +105,10 @@ def kfold_train_test(model_name, dataset_path, split_path=None,  k_fold=5,  args
         multi_label_metrics.append(np.array(metrics).mean())
         metric_mean = multi_label_metrics[0]
         metric_std = np.array(metrics).std()
-    
-    if len(multi_label_metrics) != 1: #多标签
+
+    if len(multi_label_metrics) != 1:  # 多标签
         metric_mean = np.array(multi_label_metrics).mean()
         metric_std = np.array(multi_label_metrics).std()
-
 
     if args["result_folder"] == None:
         args["result_folder"] = f"RESULT_{model_name}"
@@ -124,10 +122,12 @@ def kfold_train_test(model_name, dataset_path, split_path=None,  k_fold=5,  args
 
 def main():
     cli_args = get_basic_parser()
-    json_args = json.load(open(cli_args.config_path, "r"))
-    args = cli_args.__dict__.update(json_args)
+    json_args = json.load(open(cli_args.model_config, "r"))
+    args = cli_args.__dict__
+    args.update(json_args)
+    print(args)
     kfold_train_test(args["model_name"], args["dataset_path"],
-                     args["split_path"], args["outer_kfold"], args)
+                     args["split_path"], args["k_fold"], args)
 
 
 if __name__ == "__main__":

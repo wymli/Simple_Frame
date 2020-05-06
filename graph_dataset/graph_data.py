@@ -1,3 +1,5 @@
+import numpy as np
+from torch.utils.data import sampler
 from torch_geometric.data import Data
 import torch_geometric as pyg
 import pandas as pd
@@ -6,7 +8,7 @@ import pandas as pd
 # torch.utils.data.DataLoader()
 import rdkit
 from torch_geometric.datasets import TUDataset
-from torch_geometric.data import DataLoader
+# from torch_geometric.data import DataLoader
 from graph_dataset.node_edge_feature import *
 
 from rdkit import Chem
@@ -23,120 +25,55 @@ import os
 # fp.close()
 
 
+# def smiles_to_graphData(smiles: str, g_label: int):
+#     mol = Chem.MolFromSmiles(smiles)
+#     num_nodes = len(mol.GetAtoms())
 
-# def create_feats_from_df(df, dataset_path):
-#     raw_path = dataset_path+"bbbp/raw"
-#     if not os.path.exists(raw_path):
-#         os.mkdir(raw_path)
+#     x = []
+#     for i, atom in enumerate(mol.GetAtoms()):
+#         node_label = atom.GetAtomicNum()
+#         node_attr = atom_features(atom)
+#         x.append(node_attr.append(node_label))
 
-#     fp_edge_index = open(f"{raw_path}/bbbp_A.txt", "a")
-#     fp_graph_indicator = open(f"{raw_path}/bbbp_graph_indicator.txt", "a")
-#     fp_graph_labels = open(f"{raw_path}/bbbp_graph_labels.txt", "a")
-#     fp_node_labels = open(f"{raw_path}/bbbp_node_labels.txt", "a")
-#     fp_node_labels = open(f"{raw_path}/bbbp_node_labels.txt", "a")
-#     fp_node_attrs = open(f"{raw_path}/bbbp_node_attributes.txt", "a")
-#     fp_edge_attrs = open(f"{raw_path}/bbbp_edge_attributes.txt", "a")
+#     edge_index = []
+#     edge_attrs = []
+#     for bond in mol.GetBonds():
+#         node_1 = bond.GetBeginAtomIdx()
+#         node_2 = bond.GetEndAtomIdx()
 
-#     # r defer close
+#         edge_index.append((node_1, node_2))
+#         edge_index.append((node_2, node_1))
 
-#     # df = pd.read_csv("bbbp.csv")
-#     cnt = 1
-#     # max_nodes = 0
-#     for idx, (smiles, g_label) in enumerate(zip(df.iloc[:, 0], df.iloc[:, 1])):
-#         mol = Chem.MolFromSmiles(smiles)
-#         num_nodes = len(mol.GetAtoms())
-#         # if num_nodes > max_nodes :
-#         #     max_nodes = num_nodes
+#         edge_attr = [1 if i else 0 for i in bond_features(bond)]
+#         edge_attrs.append(edge_attr)
+#         edge_attrs.append(edge_attr)
 
-#         dict = {}
-#         for i, atom in enumerate(mol.GetAtoms()):
-#             dict[atom.GetIdx()] = cnt + i
-#             fp_node_labels.writelines(str(atom.GetAtomicNum())+"\n")
-#             fp_node_attrs.writelines(str(atom_features(atom))[1:-1]+"\n")
-
-#         bond_len = len(mol.GetBonds())
-#         fp_graph_indicator.write(f"{idx+1}\n"*num_nodes)  # node_i to graph id
-#         fp_graph_labels.write(str(g_label)+"\n")
-#         for bond in mol.GetBonds():
-#             node_1 = dict[bond.GetBeginAtomIdx()]
-#             node_2 = dict[bond.GetEndAtomIdx()]
-#             fp_edge_index.write(f"{node_1}, {node_2}\n{node_2}, {node_1}\n")
-#             fp_edge_attrs.write(
-#                 str([1 if i else 0 for i in bond_features(bond)])[1:-1]+"\n")
-#             fp_edge_attrs.write(
-#                 str([1 if i else 0 for i in bond_features(bond)])[1:-1]+"\n")
-
-#         cnt += num_nodes
-#         print(f"mol:{smiles[:6]}... ok , idx:{idx+1}")
-#     # print(max_nodes)
-#     print("Create feats from df OK!")
-
-#     fp_graph_labels.close()
-#     fp_node_labels.close()
-#     fp_graph_indicator.close()
-#     fp_edge_index.close()
-#     fp_node_attrs.close()
-#     fp_edge_attrs.close()
+#     return Data(x, edge_index, edge_attrs, y=g_label)
 
 
-# def create_dataset(dataset_path, dataset_name):
-#     dataset = TUDataset(root=dataset_path, name=dataset_name)
-#     return dataset
+# def load_data_from_df(df, train_idxs, test_idxs,label_index):
+#     '''
+#     return DataList
+#     '''
+#     dataList = []
+#     for _, smiles, labels in df.itertuples():
+#         label = labels[label_index]
+#         if label == pd.nan:
+#             continue
+#         data = smiles_to_graphData(smiles,label)
+#         dataList.append((data, label))
+#     return dataList[train_idxs], dataList[test_idxs]
 
 
-# def create_dataloader(dataset, batch_size=1, shuffle=True):
-#     dataloader = DataLoader(dataset, batch_size, shuffle)
-#     return dataloader
-
-
-def smiles_to_graphData(smiles: str, g_label: int):
-    mol = Chem.MolFromSmiles(smiles)
-    num_nodes = len(mol.GetAtoms())
-
-    x = []
-    for i, atom in enumerate(mol.GetAtoms()):
-        node_label = atom.GetAtomicNum()
-        node_attr = atom_features(atom)
-        x.append(node_attr.append(node_label))
-
-    edge_index = []
-    edge_attrs = []
-    for bond in mol.GetBonds():
-        node_1 = bond.GetBeginAtomIdx()
-        node_2 = bond.GetEndAtomIdx()
-
-        edge_index.append((node_1, node_2))
-        edge_index.append((node_2, node_1))
-
-        edge_attr = [1 if i else 0 for i in bond_features(bond)]
-        edge_attrs.append(edge_attr)
-        edge_attrs.append(edge_attr)
-
-    return Data(x, edge_index, edge_attrs, y=g_label)
-
-
-def load_data_from_df(df, train_idxs, test_idxs,label_index):
-    '''
-    return DataList
-    '''
-    dataList = []
-    for _, smiles, labels in df.itertuples():
-        label = labels[label_index]
-        if label == pd.nan:
-            continue
-        data = smiles_to_graphData(smiles,label)
-        dataList.append((data, label))
-    return dataList[train_idxs], dataList[test_idxs]
-
-
-def construct_dataloader(dataset, batch_size, shuffle):
-    return DataLoader(dataset, batch_size, shuffle)
-
+# def construct_dataloader(dataset, batch_size, shuffle):
+#     return DataLoader(dataset, batch_size, shuffle)
 
 
 # original dataloader from gnn-comparison
 from torch_geometric import data
 import torch
+
+
 class Batch(data.Batch):
     @staticmethod
     def from_data_list(data_list, follow_batch=[]):
@@ -165,7 +102,8 @@ class Batch(data.Batch):
 
         return batch
 
-class DataLoader_(torch.utils.data.DataLoader):
+
+class DataLoader(torch.utils.data.DataLoader):
     r"""Data loader which merges data objects from a
     :class:`torch_geometric.data.dataset` to a mini-batch.
     Args:
@@ -184,10 +122,137 @@ class DataLoader_(torch.utils.data.DataLoader):
                  shuffle=False,
                  follow_batch=[],
                  **kwargs):
-        super(DataLoader_, self).__init__(
+        super(DataLoader, self).__init__(
             dataset,
             batch_size,
             shuffle,
             collate_fn=lambda data_list: Batch.from_data_list(
                 data_list, follow_batch),
             **kwargs)
+
+
+class RandomSampler(sampler.RandomSampler):
+    """
+    This sampler saves the random permutation applied to the training data,
+    so it is available for further use (e.g. for saving).
+    The permutation is saved in the 'permutation' attribute.
+    The DataLoader can now be instantiated as follows:
+
+    >>> data = Dataset()
+    >>> dataloader = DataLoader(dataset=data, batch_size=32, shuffle=False, sampler=RandomSampler(data))
+    >>> for batch in dataloader:
+    >>>     print(batch)
+    >>> print(dataloader.sampler.permutation)
+
+    For convenience, one can create a method in the dataloader class to access the random permutation directly, e.g:
+
+    class MyDataLoader(DataLoader):
+        ...
+        def get_permutation(self):
+            return self.sampler.permutation
+        ...
+    """
+
+    def __init__(self, data_source, num_samples=None, replacement=False):
+        super().__init__(data_source, replacement=replacement, num_samples=num_samples)
+        self.permutation = None
+
+    def __iter__(self):
+        n = len(self.data_source)
+        self.permutation = torch.randperm(n).tolist()
+        return iter(self.permutation)
+
+
+def construct_dataloader(trainset, testset, batch_size=1, shuffle=True):
+    sampler = RandomSampler(trainset) if shuffle is True else None
+
+    # 'shuffle' needs to be set to False when instantiating the DataLoader,
+    # because pytorch  does not allow to use a custom sampler with shuffle=True.
+    # Since our shuffler is a random shuffler, either one wants to do shuffling
+    # (in which case he should instantiate the sampler and set shuffle=False in the
+    # DataLoader) or he does not (in which case he should set sampler=None
+    # and shuffle=False when instantiating the DataLoader)
+
+    return DataLoader(trainset,
+                      batch_size=batch_size,
+                      sampler=sampler,
+                      shuffle=False,  # if shuffle is not None, must stay false, ow is shuffle is false
+                      pin_memory=True), DataLoader(testset,
+                                                   batch_size=batch_size,
+                                                   sampler=sampler,
+                                                   shuffle=False,  # if shuffle is not None, must stay false, ow is shuffle is false
+                                                   pin_memory=True)
+
+
+# ---------------------------------------------------------------------------------------------
+# class GraphDataset:
+#     def __init__(self, data):
+#         self.data = data
+
+#     def __getitem__(self, index):
+#         return self.data[index]
+
+#     def __len__(self):
+#         return len(self.data)
+
+#     def get_targets(self):
+#         targets = [d.y.item() for d in self.data]
+#         return np.array(targets)
+
+#     def get_data(self):
+#         return self.data
+
+#     def augment(self, v_outs=None, e_outs=None, g_outs=None, o_outs=None):
+#         """
+#         v_outs must have shape |G|x|V_g| x L x ? x ...
+#         e_outs must have shape |G|x|E_g| x L x ? x ...
+#         g_outs must have shape |G| x L x ? x ...
+#         o_outs has arbitrary shape, it is a handle for saving extra things
+#         where    L = |prev_outputs_to_consider|.
+#         The graph order in which these are saved i.e. first axis, should reflect the ones in which
+#         they are saved in the original dataset.
+#         :param v_outs:
+#         :param e_outs:
+#         :param g_outs:
+#         :param o_outs:
+#         :return:
+#         """
+#         for index in range(len(self)):
+#             if v_outs is not None:
+#                 self[index].v_outs = v_outs[index]
+#             if e_outs is not None:
+#                 self[index].e_outs = e_outs[index]
+#             if g_outs is not None:
+#                 self[index].g_outs = g_outs[index]
+#             if o_outs is not None:
+#                 self[index].o_outs = o_outs[index]
+
+# class GraphDatasetSubset(GraphDataset):
+#     """
+#     Subsets the dataset according to a list of indices.
+#     """
+
+#     def __init__(self, data, indices):
+#         self.data = data
+#         self.indices = indices
+
+#     def __getitem__(self, index):
+#         return self.data[self.indices[index]]
+
+#     def __len__(self):
+#         return len(self.indices)
+
+#     def get_targets(self):
+#         targets = [self.data[i].y.item() for i in self.indices]
+#         return np.array(targets)
+
+def load_data_from_pt(dataset_path, train_idxs, test_idxs, label_index):
+    # dataset = GraphDataset(torch.load(dataset_path))
+    dataset = torch.load(dataset_path)
+    trainset, testset = dataset[train_idxs], dataset[test_idxs]
+    # 或者有更高效的做法
+    trainset = [(feat, label) for (feat, label)
+                in trainset if label[label_index] != None]  # or nan
+    testset = [(feat, label) for (feat, label)
+               in testset if label[label_index] != None]  # or nan
+    return trainset, testset

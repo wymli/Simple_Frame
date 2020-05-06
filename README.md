@@ -98,6 +98,8 @@ python prepare_feats.py --dataset_path "" --dataset_type ""
       每个模型构建 load_data_from_df & construct_loader(即get_loader_one_fold)函数
           load_data_from_df return feats, labels
           construct_loader return train_loader, test_loader
+      ->
+      load_data_from_pt
 - 实现(graph_data):
 ```py
 # dataset

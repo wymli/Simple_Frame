@@ -81,7 +81,7 @@ class Graph2feats():
         fp_node_attrs.close()
         fp_edge_attrs.close()
 
-    def process(self):  # y 处理成.pt
+    def process(self):  # y 处理成.pt 
         self.df2files()
         print("txt -> .pt")
 
@@ -108,7 +108,7 @@ class Graph2feats():
 
             if G.number_of_nodes() > 1 and G.number_of_edges() > 0:
                 data = self._to_data(G)  # y G是networkx ,转成pyg.data
-                dataset.append(data)
+                dataset.append((data,data.y))
 
         torch.save(dataset, self.processed_dir / f"{self.name}.pt")
 

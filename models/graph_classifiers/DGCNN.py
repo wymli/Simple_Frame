@@ -28,7 +28,8 @@ class DGCNN(nn.Module):
                    'COLLAB': { '0.6': 61, '0.9': 130 },
                    "bbbp":{"0.6": 79 , "0.9": 120 }
                    }
-
+        # 获取dataset_name,新的做法:
+        # dataset_name = config["dataset_path"].split("/")[-1].split(".")[0]
         self.k = self.ks[config.dataset.name][str(config['k'])] #w k 是global_sort_pool的参数k,代表其sort得到的前k个node 
         self.embedding_dim = config['embedding_dim']
         self.num_layers = config['num_layers']
