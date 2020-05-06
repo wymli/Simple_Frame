@@ -65,6 +65,14 @@ python main.py --model_name = '' --task_type = classification/regression --multi
 ```py
 python prepare_feats.py --dataset_path "" --dataset_type ""
 ```
+- 目录结构(raw_dir,processed_dir为程序创建):
+  - data
+    - dataset_name
+      - .csv
+      - raw(folder)
+        - .txt
+      - processed(folder)
+        - .pt
 ### Needed to change:
 - [x] data_split
 - [ ] dataset返回形式

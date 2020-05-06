@@ -5,16 +5,18 @@ from graph_dataset.node_edge_feature import *
 from graph_dataset.tu_utils import *
 import pandas as pd
 from networkx import normalized_laplacian_matrix
-
-
+from rdkit import Chem
+import rdkit
+# import glob
+from pathlib import Path
 
 class Graph2feats():
-    def __init__(self, dataset_path , use_node_attrs = False ,use_node_degree= False,use_one=False, classification = True , max_reductions=10 ,precompute_kron_indices = True ):
+    def __init__(self, dataset_path , use_node_attrs = True ,use_node_degree= False,use_one=False, classification = True , max_reductions=10 ,precompute_kron_indices = True ):
         self.dataset_path = dataset_path
-        self.folder_path = "\\".join(self.dataset_path.split("\\")[:-1])
-        self.raw_dir = os.path.join(self.folder_path,"raw")
-        self.processed_dir = os.path.join(self.folder_path,"processed")
-        self.name = self.dataset_path.split("\\")[-1]
+        self.folder_path = "/".join(self.dataset_path.split("/")[:-1])
+        self.raw_dir = Path(os.path.join(self.folder_path,"raw"))
+        self.processed_dir = Path(os.path.join(self.folder_path,"processed"))
+        self.name = self.dataset_path.split("/")[-1].split(".")[0]
         self.use_node_degree = use_node_degree
         self.use_node_attrs = use_node_attrs
         self.use_one = use_one
@@ -31,17 +33,22 @@ class Graph2feats():
 
 
     def df2files(self):
+        print("csv->some txt files")
         raw_path = self.raw_dir
-        fp_edge_index = open(f"{raw_path}\\{self.name}_A.txt", "a")
-        fp_graph_indicator = open(f"{raw_path}\\{self.name}_graph_indicator.txt", "a")
-        fp_graph_labels = open(f"{raw_path}\\{self.name}_graph_labels.txt", "a")
-        fp_node_labels = open(f"{raw_path}\\{self.name}_node_labels.txt", "a")
-        fp_node_labels = open(f"{raw_path}\\{self.name}_node_labels.txt", "a")
-        fp_node_attrs = open(f"{raw_path}\\{self.name}_node_attributes.txt", "a")
-        fp_edge_attrs = open(f"{raw_path}\\{self.name}_edge_attributes.txt", "a")
+        if os.path.exists(raw_path):
+            print("已存在{raw_path}目录,不再生成_A,_graph_indicator,_node_labels,.....txt文件")
+            return
+        fp_edge_index = open(f"{raw_path}/{self.name}_A.txt", "a")
+        fp_graph_indicator = open(f"{raw_path}/{self.name}_graph_indicator.txt", "a")
+        fp_graph_labels = open(f"{raw_path}/{self.name}_graph_labels.txt", "a")
+        fp_node_labels = open(f"{raw_path}/{self.name}_node_labels.txt", "a")
+        fp_node_labels = open(f"{raw_path}/{self.name}_node_labels.txt", "a")
+        fp_node_attrs = open(f"{raw_path}/{self.name}_node_attributes.txt", "a")
+        fp_edge_attrs = open(f"{raw_path}/{self.name}_edge_attributes.txt", "a")
         # r defer close
 
         df = pd.read_csv(self.dataset_path)
+        cnt = 1
         for idx, (smiles, g_label) in enumerate(zip(df.iloc[:, 0], df.iloc[:, 1])):
             mol = Chem.MolFromSmiles(smiles)
             num_nodes = len(mol.GetAtoms())
@@ -76,6 +83,7 @@ class Graph2feats():
 
     def process(self):  # y 处理成.pt
         self.df2files()
+        print("txt -> .pt")
 
         graphs_data, num_node_labels, num_edge_labels = parse_tu_data(
             self.name , self.raw_dir)
@@ -213,15 +221,11 @@ def parse():
 
 
 def main():
-    print("hello")
     args = parse()
-    print("hello")
     if args.dataset_type == "graph":
-        print("hello")
         preparer = Graph2feats(args.dataset_path)
         preparer.process()
 
 
 if __name__ == "__main__":
-    print("hello")
     main()
