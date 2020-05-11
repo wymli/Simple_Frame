@@ -80,7 +80,7 @@ class Batch(data.Batch):
         laplacians = None
         v_plus = None
 
-        if 'laplacians' in data_list[0]:
+        if 'laplacians' in data_list[0]:  # r fix 如果改到不是tuple,需要fix
             laplacians = [d.laplacians[:] for d in data_list]
             v_plus = [d.v_plus[:] for d in data_list]
 
@@ -227,32 +227,55 @@ def construct_dataloader(trainset, testset, batch_size=1, shuffle=True):
 #             if o_outs is not None:
 #                 self[index].o_outs = o_outs[index]
 
-# class GraphDatasetSubset(GraphDataset):
-#     """
-#     Subsets the dataset according to a list of indices.
-#     """
 
-#     def __init__(self, data, indices):
-#         self.data = data
-#         self.indices = indices
+class DatasetSubset():
+    """
+    Subsets the dataset according to a list of indices.
+    """
 
-#     def __getitem__(self, index):
-#         return self.data[self.indices[index]]
+    def __init__(self, data, indices):
+        self.data = data
+        self.indices = indices
 
-#     def __len__(self):
-#         return len(self.indices)
+    def __getitem__(self, index):
+        return self.data[self.indices[index]]
 
-#     def get_targets(self):
-#         targets = [self.data[i].y.item() for i in self.indices]
-#         return np.array(targets)
+    def __len__(self):
+        return len(self.indices)
 
-def load_data_from_pt(dataset_path, train_idxs, test_idxs, label_index):
-    # dataset = GraphDataset(torch.load(dataset_path))
+    def get_targets(self):
+        targets = [self.data[i].y.item() for i in self.indices]
+        return np.array(targets)
+
+
+def load_data_from_pt_graph(dataset_path, train_idxs, test_idxs, label_index):
     dataset = torch.load(dataset_path)
-    trainset, testset = dataset[train_idxs], dataset[test_idxs]
+    # dataset = torch.load(dataset_path)  # 本来是用上一行的代码来读,但效果应该是一样的 
+    # get_three_basic_info(dataset)
+    # dataset_np = np.array(dataset)
+    # del dataset
+    train_idxs_ = [i for i in train_idxs if dataset[i].y[label_index]!=None ]
+    test_idxs_ = [i for i in test_idxs if dataset[i].y[label_index]!=None ]
+    # print(type(dataset_np))
+    # trainset, testset = dataset_np[train_idxs], dataset[test_idxs]
+    trainset = DatasetSubset(dataset , train_idxs_)
+    testset = DatasetSubset(dataset , test_idxs_)
     # 或者有更高效的做法
-    trainset = [(feat, label) for (feat, label)
-                in trainset if label[label_index] != None]  # or nan
-    testset = [(feat, label) for (feat, label)
-               in testset if label[label_index] != None]  # or nan
+    #r fix
+    # print(trainset)
+    # print(trainset[0])
+    # trainset = [data for data
+    #             in trainset if data.y[label_index] != None]  # or nan
+    # testset = [data for data
+    #            in testset if data.y[label_index] != None]  # or nan
     return trainset, testset
+
+# --------------------------------------------------------------------
+def get_three_basic_info(dataset):
+    _dim_features = 0
+    _dim_target = 0
+    max_num_nodes = 0
+    # _dim_target = np.unique(dataset.get_targets()).size
+    _dim_features = dataset.data[0][0].x.size(1)
+    print("_dim_target:", _dim_target, "_dim_features:", _dim_features)
+    # max_num_nodes = max([len(v) for (k, v) in graphs_data['graph_nodes'].items()])

@@ -1,54 +1,3 @@
-
-----
-
-### 预计的命令行参数:
-
-- config_path
-- dataset_path
-  - .csv
-- split_path
-- result_folder
-- outer_kfold
-- metric_type
-  - auc
----
-
-- config的一些超参:
-  - max_epochs
-  - device
-  - loss_fn
-  - optimizer
-  - model_name
-  - batch_size
-  - ...
-  <!-- -  [] early_stop
-       - use_loss
-       - use_metric -->
----
-- 每个模型特异的:
-  - config.json
-  - data_process_func_smiles2inputVec
-    - ```py
-      df = pd.read_csv(dataset_path)
-      dataset = process_data(df)
-      dataloader = DataLoader(dataset[indices] , batch_size)
-      ```
-  - 数据集的访问
-  - ``` python
-    # 我这边GNN的dataset形式
-    for data in dataloader:
-      x, edge_index, batch = data.x, data.edge_index, data.batch
-      label = data.y
-    ```
-  - 这边GNN的做法是直接将data传进model
-  - ```py
-    for data in dataloader:
-      model.train()
-      output = model(data)
-      loss = loss_fn(output , data.y)
-      ...
-    ```
-
 ### 2020-04-26
 
 
@@ -59,11 +8,12 @@ python data_split.py --input_file = 'XXXX.csv' --random_split(store_true)/--scaf
 ```
 - run exp
 ```bash
-python main.py --model_name = '' --task_type = classification/regression --multi_label(store_true) --dataset_path = '' --split_path = '' --k_fold = 5 --model_config
+python main.py --model_name  'ECC' --task_type = 'classification' --multi_label 1 --dataset_path  'data/bbbp/processed/bbbp.pt' --split_path = 'data/bbbp/splits.json' --k_fold = 5 --model_config "model_config/config_ECC.json"
 ```
 - prepare data
 ```py
-python prepare_feats.py --dataset_path "" --dataset_type ""
+python prepare_feats.py --dataset_path "data/bbbp/bbbp.csv" --dataset_type "graph"
+--type 指图数据或MAT或..
 ```
 - 目录结构(raw_dir,processed_dir为程序创建):
   - data
@@ -81,7 +31,7 @@ python prepare_feats.py --dataset_path "" --dataset_type ""
   - [x] graph_data
 - [x] multi_label
 - [ ] visualization
-- [ ] 载入config
+- [x] 载入config
 
 #### add data_split.py
       scaffold, random_split
@@ -156,3 +106,8 @@ if len(multi_label_metrics) != 1: #多标签
 #### visualization
   - pass
 
+---
+细节:
+- load_data_from_pt现在为每折重新从文件取,也许可以设计成直接存到内存
+- list不能直接用index_list索引,所以要么dataset以np.save存储.npy(而不是torch.save->.pt),要么用一个类来实现__getitem__()方法
+  - 现在的实现是用了一个dataset类

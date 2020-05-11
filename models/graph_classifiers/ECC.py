@@ -94,7 +94,7 @@ class ECC(nn.Module):
         laplacian_layer_list = [laplacians[i][layer_no] for i in range(len(laplacians))]
         laplacian_block_diagonal = self.make_block_diag(laplacian_layer_list)
         
-        if self.config.dataset.name == 'DD':
+        if self.config["dataset_name"] == 'DD':
             laplacian_block_diagonal[laplacian_block_diagonal<1e-4] = 0
 
         # First layer
@@ -112,8 +112,8 @@ class ECC(nn.Module):
             edge_index = lap_edge_idx if i != 0 else edge_index
             edge_weight = lap_edge_weights if i != 0 else x.new_ones((edge_index.size(1), ))
 
-            edge_index = edge_index.to(self.config.device)
-            edge_weight = edge_weight.to(self.config.device)
+            edge_index = edge_index.to(self.config["device"])
+            edge_weight = edge_weight.to(self.config["device"])
 
             # apply convolutional layer
             x = layer(x, edge_index, edge_weight)
@@ -125,8 +125,8 @@ class ECC(nn.Module):
         # final_convolution
         lap_edge_idx, lap_edge_weight, v_plus_batch = self.get_ecc_conv_parameters(data, layer_no=self.num_layers)
 
-        lap_edge_idx = lap_edge_idx.to(self.config.device)
-        lap_edge_weight = lap_edge_weight.to(self.config.device)
+        lap_edge_idx = lap_edge_idx.to(self.config["device"])
+        lap_edge_weight = lap_edge_weight.to(self.config["device"])
 
         x = F.relu(self.final_conv(x, lap_edge_idx, lap_edge_weight))
         x = F.dropout(self.final_conv_bn(x), p=self.dropout, training=self.training)

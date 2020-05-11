@@ -39,21 +39,22 @@ class dataLoader_provider:
         trainset_indices = indices["train"]
 
         # df = pd.read_csv(self.dataset_path)
-
+        train_loader = None
+        test_loader = None
+        # ! load_data_from_pt每一折都重新读取pt文件 
         if self.model_name in ["DGCNN", "GIN", "ECC", "GraphSAGE", "DiffPool"]:  # 图模型
-            train_dataset, test_dataset = graph_data.load_data_from_pt(
+            train_dataset, test_dataset = graph_data.load_data_from_pt_graph(
                 self.dataset_path, trainset_indices, testset_indices, label_index)
             train_loader, test_loader = graph_data.construct_dataloader(
                 train_dataset, test_dataset, self.batch_size, self.shuffle)
 
-        # train_loader = DataLoader(
-        #     df[trainSet_indices], self.batch_size, shuffle=True)
-        # test_loader = DataLoader(
-        #     df[testSet_indices], self.batch_size, shuffle=True)
         return train_loader, test_loader
 
 
 def get_targets_len(dataset_path):
+    '''
+    param: csv path
+    '''
     df = pd.read_csv(dataset_path)
     targets_len = len(df.columns.tolist())-1
     return targets_len
@@ -63,7 +64,11 @@ def kfold_train_test(model_name, dataset_path, split_path=None,  k_fold=5,  args
     model_class = getConfig("models", model_name)
     if model_name in ["DGCNN", "GIN", "ECC", "GraphSAGE", "DiffPool"]:
         # 实例化model
-        # 这里args还要再fix一下,在模型内部需要访问args.dataset.max_num_nodes
+        # 这里args还要再fix一下,在模型内部需要访问args.dataset.max_num_nodes,直接硬编码算了
+        if args["dataset_name"] == "bbbp":
+            args["dim_features"] = 186
+            args["dim_target"] = 2
+            args["max_num_nodes"] = 132
         model = model_class(args["dim_features"], args["dim_target"], args)
 
     optimizer = getConfig("optimizers", args["optimizer"])(model.parameters(),
@@ -75,21 +80,9 @@ def kfold_train_test(model_name, dataset_path, split_path=None,  k_fold=5,  args
     net = netWrapper.NetWrapper(
         model, loss_fn, device=args["device"], classification=True, metric_type=args["metric_type"])
 
-    # metrics = []
-    # losses = []
-    # for i in range(k_fold):
-    #     train_loader, test_loader = loader_provider.get_loader_one_fold(i)
-    #     metric, loss = net.train_test_one_fold(train_loader, test_loader, max_epochs=100, optimizer=optimizer, scheduler=None, clipping=None,
-    #                                            early_stopping=None, log_every=10)
-    #     metrics.append(metric)
-    #     # losses.append(loss)
-    # metric_mean = np.array(metrics).mean()
-    # metric_std = np.array(metrics).std()
 
-    # multi_label
-    targets_len = 1
-    if args["multi_label"]:  # 可以去掉,此时不需要multi_label这个参数
-        targets_len = get_targets_len(dataset_path)
+    # multi_label = 1 default
+    targets_len = args["multi_label"]  #
 
     metric_mean = 0
     metric_std = 0
@@ -97,10 +90,11 @@ def kfold_train_test(model_name, dataset_path, split_path=None,  k_fold=5,  args
     for label_index in range(targets_len):
         metrics = []
         for i in range(k_fold):
+            print("-"*10)
             train_loader,  test_loader = loader_provider.get_loader_one_fold(
                 i, label_index=label_index)
             metric, loss = net.train_test_one_fold(
-                train_loader, test_loader)
+                train_loader, test_loader, optimizer=optimizer)
             metrics.append(metric)
         multi_label_metrics.append(np.array(metrics).mean())
         metric_mean = multi_label_metrics[0]
@@ -112,19 +106,27 @@ def kfold_train_test(model_name, dataset_path, split_path=None,  k_fold=5,  args
 
     if args["result_folder"] == None:
         args["result_folder"] = f"RESULT_{model_name}"
-        os.mkdir(args["result_folder"])
+        if not os.path.exists(args["result_folder"]):
+            os.mkdir(args["result_folder"])
 
-    with open(os.path.join(args["result_folder"], "final_metrics")) as f:
-        f.write("\n".join(metrics))
-        f.writelines("")
-        f.write(f"[metric_mean] {metric_mean} [metric_std] {metric_std}")
+    with open(os.path.join(args["result_folder"], "Final_Result_%.0f" % time.time()), "w") as f:
+        f.write(str(args))
+        f.write("\n")
+        f.write("[Metric every fold]:\n")
+        f.write("\n".join(map(str, metrics)))
+        f.write("\n")
+        f.write(f"[metrics_mean] {metric_mean} [metrics_std] {metric_std}")
+    print("-"*10)
+    print(f"[metrics_mean] {metric_mean} [metrics_std] {metric_std}")
 
 
 def main():
     cli_args = get_basic_parser()
     json_args = json.load(open(cli_args.model_config, "r"))
+    json_dict = {k: v[0] for k, v in json_args.items()}
     args = cli_args.__dict__
-    args.update(json_args)
+    args.update(json_dict)
+    args["dataset_name"] = args["dataset_path"].split("/")[-1].split(".")[0]
     print(args)
     kfold_train_test(args["model_name"], args["dataset_path"],
                      args["split_path"], args["k_fold"], args)

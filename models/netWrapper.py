@@ -7,12 +7,12 @@ import torch
 import pandas as pd
 
 
-def format_time(avg_time):
-    avg_time = timedelta(seconds=avg_time)
-    total_seconds = int(avg_time.total_seconds())
-    hours, remainder = divmod(total_seconds, 3600)
-    minutes, seconds = divmod(remainder, 60)
-    return f"{hours:02d}:{minutes:02d}:{int(seconds):02d}.{str(avg_time.microseconds)[:3]}"
+# def format_time(avg_time):
+#     avg_time = timedelta(seconds=avg_time)
+#     total_seconds = int(avg_time.total_seconds())
+#     hours, remainder = divmod(total_seconds, 3600)
+#     minutes, seconds = divmod(remainder, 60)
+#     return f"{hours:02d}:{minutes:02d}:{int(seconds):02d}.{str(avg_time.microseconds)[:3]}"
 
 
 class NetWrapper:
@@ -23,20 +23,20 @@ class NetWrapper:
         self.classification = classification  # 分类任务
         self.metric_type = metric_type
 
-    def train_test_one_fold(self, train_loader, test_loader, max_epochs=100, optimizer=torch.optim.Adam, scheduler=None, clipping=None,
-                            early_stopping=None, logger=None, log_every=10, label_index=0):
+    def train_test_one_fold(self, train_loader, test_loader,optimizer, max_epochs=3,  scheduler=None, clipping=None,
+                            early_stopping=None, logger=None, log_every=1):
 
         for i in range(max_epochs):
             begin = time.time()
             metric, loss = self.train_one_epoch(
-                train_loader, optimizer, clipping=None, label_index=label_index)
+                train_loader, optimizer, clipping=None)
             end = time.time()
             duration = end - begin
             if i % log_every == 0:
                 msg = f'[TRAIN] Epoch: {i+1}, metric: {self.metric_type}, TR loss: {loss} TR metric: {metric}'
                 print(msg)
                 print(
-                    f"elapsed time: {duration}s , Time estimation in a fold:{duration*max_epochs/3600}h")
+                    f"- Elapsed time: {str(duration)[:4]}s , Time estimation in a fold:{str(duration*max_epochs/60)[:4]}min")
             # r 可能要加early_stop
 
         metric, loss = self.test(test_loader)
@@ -54,21 +54,11 @@ class NetWrapper:
         # y_labels = np.array([])
         y_preds = []
         y_labels = []
-        for feats, labels in train_loader: #或者统一labels形式
-            # # 兼容多标签模型   ->label_index 改到load_data_from_df里面
-            # if isinstance(labels , list): #单标签
-            #     pass 
-            # elif isinstance(labels , pd.Series):
-            #     pass
-            # elif isinstance(labels , pd.DataFrame): #多标签
-            #     labels = labels.iloc[:,label_index]
-            # elif isinstance(labels , np.array):  
-            #     if len(labels.shape) != 1:
-            #         labels = labels[:,label_index]
-            # else:
-            #     pass
-            # labels = labels.dropna()
-
+        for batch in train_loader: #或者统一labels形式
+            # graph: Batch(batch=[782], edge_attr=[845, 14], edge_index=[2, 1690], x=[782, 186], y=[32])
+            # print(a)
+            labels = batch.y
+            feats = batch
             feats = feats.to(self.device)
             optimizer.zero_grad()
             output = model(feats)
@@ -100,10 +90,9 @@ class NetWrapper:
             optimizer.step()
 
         if self.classification:
-            metric = get_metric(y_labels, y_preds, self.metric_type)
-            return metric, loss_all / len(train_loader.dataset)
-        else:
-            return None, loss_all / len(train_loader.dataset)
+            return get_metric(y_labels, y_preds, self.metric_type), loss_all / len(train_loader.dataset)
+        else: # mse
+            return get_metric(y_labels, y_preds, self.metric_type), loss_all / len(train_loader.dataset)
 
     def test(self, test_loader):
         model = self.model.to(self.device)
@@ -140,6 +129,6 @@ class NetWrapper:
                 loss_all += loss.item()
 
         if self.classification:
-            return get_a_metric(y_labels, y_preds, self.metric_type), loss_all / len(test_loader.dataset)
-        else:
-            return None, loss_all / len(test_loader.dataset)
+            return get_metric(y_labels, y_preds, self.metric_type), loss_all / len(test_loader.dataset)
+        else: # mse
+            return get_metric(y_labels, y_preds, self.metric_type), loss_all / len(test_loader.dataset)

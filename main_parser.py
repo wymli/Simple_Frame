@@ -26,6 +26,8 @@ import os
 #     return "classification" if str(arg)[0] == 'c' else 'regression'
 
 
+
+
 def get_basic_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument('--model_name',
@@ -41,17 +43,20 @@ def get_basic_parser():
                         type=str, required=False, default="classification",
                         help='classification or regression')
     parser.add_argument('--multi_label',
-                        type=bool, required=False, default=False,
+                        type=int, required=False, default=1,
                         help='is multi_label or not')
     parser.add_argument('--split_path',
                         type=str, required=False,
                         help='cross_val splits.json')
     parser.add_argument('--result_folder',
-                        type=str, required=False,
+                        type=str, required=False,default=None,
                         help='Where to save metric mean_std')
     parser.add_argument('--k_fold',
                         type=int, required=False, default=5,
                         help='Outer kfold')
+    parser.add_argument('--metric_type',
+                        type=str, required=False, default="auc",
+                        help='auc-roc')
 
     return parser.parse_args()
 

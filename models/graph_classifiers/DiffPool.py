@@ -86,7 +86,7 @@ class DiffPool(nn.Module):
     def __init__(self, dim_features, dim_target, config):
         super().__init__()
 
-        self.max_num_nodes = config.dataset.max_num_nodes
+        self.max_num_nodes = config["max_num_nodes"]
         num_diffpool_layers = config['num_layers']
         gnn_dim_hidden = config['gnn_dim_hidden']  # embedding size of first 2 SAGE convolutions
         dim_embedding = config['dim_embedding']  # embedding size of 3rd SAGE convolutions (eq. 5, dim of Z)
