@@ -1,11 +1,12 @@
-from tu_utils import *
-from node_edge_feature import *
+from .tu_utils import *
+from .node_edge_feature import *
 import torch
 import os
 import pandas as pd
 from networkx import normalized_laplacian_matrix
 from rdkit import Chem
 import rdkit
+import numpy as np
 from pathlib import Path
 
 
@@ -43,8 +44,9 @@ class Graph2feats():
         print("csv->some txt files")
         raw_dir = self.raw_dir
         if os.path.exists(raw_dir):
-            print(f"已存在{raw_dir}目录,不再生成_A,_graph_indicator,_node_labels,.....txt文件")
-            return
+            if len(os.listdir(raw_dir)) != 0:
+                print(f"已存在{raw_dir}目录,不再生成_A,_graph_indicator,_node_labels,.....txt文件")
+                return
         else:
             os.mkdir(self.raw_dir)
         fp_edge_index = open(f"{raw_dir}/{self.name}_A.txt", "a")
